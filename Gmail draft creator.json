@@ -1,0 +1,318 @@
+{
+  "name": "Gmail draft creator",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -96
+      ],
+      "id": "188f7f2e-68e3-4f79-a13d-3a3d3c43ad13",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7FIPhVBgfyRx0YGg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "Sponsership",
+              "description": "The email mentions sponsorship, partnership opportunities, brand collaboration, funding support, or requests for business backing"
+            },
+            {
+              "category": "High Priority",
+              "description": "The email contains urgent requests, critical issues, deadlines, escalations, or time-sensitive actions that require immediate attention."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        -96
+      ],
+      "id": "637dcdf5-d755-48db-bf6c-3a87ceed1b59",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        304,
+        128
+      ],
+      "id": "74b1331c-593f-4e82-a858-d751a0d7ad3e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VZnoZmOly1T4WPnL",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "systemMessage": "=You are an AI assistant for an email account. Your job is to draft a polite, professional, and friendly email response. Your entire response MUST be a single valid JSON object with two keys: \"subject\" and \"body\".    "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -192
+      ],
+      "id": "5a43744a-aca2-4238-b0b5-4c89db261e0f",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VZnoZmOly1T4WPnL",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawJsonString = $input.item.json.content.parts[0].text;\n\n// The AI's output sometimes includes extra characters like newlines.\n// Trim them to ensure proper parsing.\nconst cleanedJsonString = rawJsonString.trim();\n\n// Parse the text into a real JSON object\nconst parsedData = JSON.parse(cleanedJsonString);\n\n// Return the parsed data so it can be used by the next node\nreturn [{ json: parsedData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        -192
+      ],
+      "id": "49bd754d-0661-4cd4-8976-58e495025bf6",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1152,
+        -192
+      ],
+      "id": "92585d57-5f2a-49f9-8ed5-221f0bcf5667",
+      "name": "Create a draft",
+      "webhookId": "a17d012a-5de7-45a0-9249-d2357736c1cc",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7FIPhVBgfyRx0YGg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.text }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "systemMessage": "You are an AI assistant for an email account. Your job is to draft a prompt and professional email response to a high-priority sender. Your entire response MUST be a single valid JSON object with two keys: \"subject\" and \"body\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        576,
+        0
+      ],
+      "id": "06a51c18-d776-46e7-92aa-70be6967ae3e",
+      "name": "Message a model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VZnoZmOly1T4WPnL",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawJsonString = $input.item.json.content.parts[0].text;\n\n// The AI's output sometimes includes extra characters like newlines.\n// Trim them to ensure proper parsing.\nconst cleanedJsonString = rawJsonString.trim();\n\n// Parse the text into a real JSON object\nconst parsedData = JSON.parse(cleanedJsonString);\n\n// Return the parsed data so it can be used by the next node\nreturn [{ json: parsedData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        0
+      ],
+      "id": "2c93039b-a755-4bc6-bbd7-bf4593396b6e",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "85f62931-1334-4258-907f-2cbcded99be3",
+      "name": "Create a draft1",
+      "webhookId": "a5dc0fb8-7eea-4667-8c8b-00547cef09b5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7FIPhVBgfyRx0YGg",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Create a draft1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fa0a7c77-dcdb-4c5b-9edd-488e3872e246",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "64b9b50fe810eb3825ac00af335a740f708fd1ca067a5927197cb35b067684e7"
+  },
+  "id": "BdvtIgsHwzWT7vjz",
+  "tags": []
+}
